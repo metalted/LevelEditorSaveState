@@ -1,4 +1,5 @@
 ﻿using BepInEx;
+using BepInEx.Configuration;
 using HarmonyLib;
 using UnityEngine;
 using System.Reflection;
@@ -11,8 +12,12 @@ namespace SaveState
     {
         public const string pluginGUID = "com.metalted.zeepkist.savestate";
         public const string pluginName = "Save State";
-        public const string pluginVersion = "1.2";
+        public const string pluginVersion = "1.3";
         public static CarState carState;
+
+        public ConfigEntry<KeyCode> saveKey;
+        public ConfigEntry<KeyCode> removeKey;
+        public static SaveStatePlugin Instance;
 
         public Harmony harmony = new Harmony(pluginGUID);
 
@@ -20,6 +25,11 @@ namespace SaveState
         {
             harmony.PatchAll();
             Logger.LogInfo("Plugin Save State is loaded.");
+
+            Instance = this;
+
+            saveKey = Config.Bind("Controls", "Save State", KeyCode.X, "Save the current state.");
+            removeKey = Config.Bind("Controls", "Remove State", KeyCode.Z, "Remove the saved state.");
         }
     }
 
@@ -50,7 +60,7 @@ namespace SaveState
     {
         public static void Postfix(GameMaster __instance)
         {
-            if (Input.GetKeyDown(KeyCode.X) && !Helper.spawnedButNotReleased)
+            if (Input.GetKeyDown(SaveStatePlugin.Instance.saveKey.Value) && !Helper.spawnedButNotReleased)
             {
                 LevelScriptableObject GlobalLevel = Helper.GetInstanceField(__instance.GetType(), __instance, "GlobalLevel") as LevelScriptableObject;
                 if (GlobalLevel != null && GlobalLevel.IsTestLevel)
@@ -67,7 +77,7 @@ namespace SaveState
                     __instance.manager.messenger.Log("Saved State", 3f);
                 }
             }
-            else if (Input.GetKeyDown(KeyCode.Z) && !Helper.spawnedButNotReleased)
+            else if (Input.GetKeyDown(SaveStatePlugin.Instance.removeKey.Value) && !Helper.spawnedButNotReleased)
             {
                 if (SaveStatePlugin.carState != null)
                 {
